@@ -1,0 +1,15 @@
+//Same talk:
+https://ubm-twvideo01.s3.amazonaws.com/o1/vault/gdc2018/presentations/Alain_Benoit_HierarchicalDynamicPathfinding.pdf
+https://www.youtube.com/watch?v=pG9SoTF1mCI
+
+//An interesting research paper.
+https://cdn.aaai.org/ojs/18799/18799-52-22508-1-10-20210929.pdf
+
+Current idea:   Base Case of minecraft destruction:
+                                Pretty easy, just use normal a* with weighted values for walls to denote the fact that they could be destroyed
+                                But what if actually dynamic:
+                                Then each node could keep a % of what part of it is covered and compare with adjacent nodes, and if this
+                                is large enough to pass through, then it is pathfindable, and can use steering behaviours to make up for the 
+                                remainder.
+                                Need to figure out how to check which side is destroyed though.
+                                Also maybe how to do this with detecting dynamically placed objects??

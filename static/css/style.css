@@ -1,0 +1,52 @@
+h1 {
+    color: cadetblue;
+}
+
+h3 {
+    color: cadetblue;
+}
+
+h4 {
+    color: cadetblue;
+}
+
+body {
+    background-color:aliceblue;
+}
+
+p {
+    color:black;
+    font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+}
+
+li {
+    color: black;
+    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+}
+
+a {
+    color:crimson;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline; 
+}
+
+.maintext {
+    width: 75%;
+    margin: 0 auto;
+}
+
+.title {
+    display: flex;
+    justify-content: center;
+}
+
+#title-link {
+    text-decoration: none;
+}
+
+#title-link :hover {
+    text-decoration: none;
+}

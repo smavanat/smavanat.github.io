@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang = "en" id = "content">
+    <head>
+        <title>How AI agents could pathfind in dynamic environments</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="/static/css/style.css">
+    </head>
+    <body>
+        <a href = "projects">Projects</a>
+        <div class="maintext">
+            <div class="title">
+                <div style="display: flex; flex-direction: column;">
+                    <a id = "title-link" href="index.html"><h1>My Website</h1></a>
+                    <div style="display: flex; justify-content: center; gap:5px">
+                        <a href="https://github.com/smavanat">Github</a>
+                        <a href="projects.html">Projects</a>
+                    </div>
+                </div>
+            </div><br><br>
+            <h1>How AI agents could pathfind in dynamic environments</h1>
+            <p>
+                In this piece I want to go over some ideas that I have on how to approach a future project that I am going to be working on.
+                The aim of this project will be to take the destruction systems that I discussed in <a href="/blog?id=1">this</a> piece earlier,
+                and make an AI agent system that (initially) will be able to pathfind around environments built using this destructible system which 
+                could handle both finding paths through irregularly destroyed obstacles and destroying obstacles of its own volition to find a much 
+                shorter path.
+            </p>
+            <!--<h3>Baby Steps</h3>-->
+            <p>
+                To start off with, let's consider a very simple example. Instead of a fully dynamic world, instead we have a simple 10x10
+                grid with a room and an agent standing inside, as shown below:
+            </p>
+            <div style="display: flex; justify-content: center;">
+                <div style="overflow: hidden; width: fit-content;display: flex; justify-content: center;">
+                    <img src="/static/images/Screenshot 2025-04-20 143112.png" style=" display: block; width: 50%;">
+                </div>
+            </div>
+            <p>
+                Obviously, to get from the agent's starting position to any other non-wall tile we would just use a well established
+                pathfinding algorithm such as Dijkstra's or A*, but if it were possible to also destroy the walls (at an additional cost),
+                then there would be many more possibilities. In the diagram below, you can see that there is a representation of the extra cost
+                it would take to pass through a specific node. Only the wall nodes have an extra cost, reflecting that they must be destroyed
+                to be passed through.
+            </p>
+            <div style="display: flex; justify-content: center;">
+                <div style="overflow: hidden; width: fit-content;display: flex; justify-content: center;">
+                    <img src="/static/images/Screenshot 2025-04-20 152322.png" style=" display: block; width: 50%;">
+                </div>
+            </div>
+            <p>
+                This, in essence, forms the basis for pathfinding in environments with regular destructibility (think
+                if colonists could break things to get places faster in Rimworld). However, I want to attempt something more 
+                complex in this project, and design a system that would still function even if the destruction happened in a more
+                irregular fashion, for example if the section that was destroyed contained parts of of several nodes, but
+                did not destroy any of them fully.
+            </p>
+            <p>
+                In order to approach this properly, the first thing that we need to do is get rid of the (unsaid) assumption
+                that a wall and the grid node beneath it are one and the same. This would mean that a grid node could track how 
+                much of it was "walkable" (not covered by an obstacle), and then the pathfinding planner could compare this with adjacent 
+                nodes to figure out if an agent could pass through the gap or not. This would eliminate obstacles that are not sufficiently eroded
+                to allow for passage and also allow for passage between obstacles using context-based steering.
+            </p>
+            <p>
+                However, this still does not account for partial filling in areas that are not adjacent, which would be flagged
+                by this algorithm as passable, when in reality they are not. This could be mitigated by doing a pass over the nodes
+                that need to be queried, breaking down their area into smaller chunks and seeing how many of these are filled by other textures,
+                and comparing with adjacent nodes to see if a passage does exist.
+            </p>
+            <p>
+                Combining this all together would create a system that would work very well on a small level, and could be used in conjunction with other
+                techniques such as hierarchical pathfinding to allow for traversal over large areas by agents, or with greater possibilities for interactivity
+                to allow for more diverse agent actions.
+            </p>
+        </div>
+    </body>
+</html>
