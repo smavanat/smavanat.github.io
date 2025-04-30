@@ -48,7 +48,6 @@ a:hover {
 .title {
     display: flex;
     justify-content: center;
-    background-color:rgb(39, 180, 180);
     padding-bottom: 4px;
     border-radius: 2px;
 }
