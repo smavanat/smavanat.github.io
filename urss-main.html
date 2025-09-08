@@ -66,12 +66,12 @@
                 When determining whether a partial path exists, we begin by creating a “surround grid” - a grid that is made up of the subcells of the current tile and its adjacent neighbours. We then determine the start and end positions of the partial path we want to calculate. This is done by getting the direction of the neighbour we want to go and the direction that we reached the current tile relative to itself. We then iterate over the subcells in the “surround grid” to discern “valid” subcells. We restrict the subcells that we iterate over to be only those within the original tile and within a one-subcell thick border that surrounds it. A subcell is considered “valid” if it is not a filled (unwalkable) subcell, and it would be possible to draw the agent’s bounding box using this subcell as the origin without any filled subcells being contained within its boundary. This is because we are not determining whether the the agent can actually fit onto any of these neighbour tiles, only that the agent can reach it from the current tile. Whether the agent is able to actually do something useful for pathfinding from a neighbour tile will be determined once its turn in the open list has been reached, rather than in the current subcell-based pathfinding.
             </p>
             <div style="display: flex; justify-content: center;">
-                <div style="overflow: hidden; width: fit-content;display: flex; justify-content: center;">
-                    <figure>
+                <figure>
+                    <div style="overflow: hidden; width: fit-content;display: flex; justify-content: center;">
                         <img src="/static/images/ValidTilesDemo.png" style=" display: block; width: 50%;">
                         <figcaption> diagram showing valid subcell positions for a 4x4 agent highlighted in red</figcaption>
-                    </figure>
-                </div>.
+                    </div>
+                </figure>
             </div>
 
             <p>
