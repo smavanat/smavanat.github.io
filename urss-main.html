@@ -74,6 +74,10 @@
             <p>
                 We then run Breadth-First-Search on these “valid” subcells to see if a path exists between the start position and the end position and return the result. This is therefore the full process by which one can find a path through a dynamic environment, in this case through one that is destructible, but this can easily work in other environments where terrain is added by changing when the calls to update the grid are made.
             </p>
+            <h3>Closing thoughts</h3>
+            <p>
+                Over the course of this research project I felt that I learnt a lot about pathfinding and developing agentic systems. While I didn't acheive as much as I wanted, this is certainly an area that I would like to return to in the future. However, there were a few things that began to annoy me towards the end of the development process. The first was the way I had designed the engine backend, it felt cobbled together and very rigid, and the second was my choice of language: C++, as I realised that I didn't really enjoy coding in C++, and I found myself adopting a C-like style of programming towards the end of the project. To this end, I have decided to do a full re-write of this project in C (I did also consider doing it in Zig, but the fact that the language is not fully stable yet put me off doing such a large project in it for now), with a focus on making a strong engine foundation first before moving on to re-implementing the pathfinding systems I developed here. Of course, you can expect to find a documentation of my process on this site as well as code examples on my github in the future.
+            </p>
         </div>
     </body>
 </html>
