@@ -10,9 +10,17 @@ h4 {
     color: cadetblue;
 }
 
+html {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
 body {
+    height: 100%;
     background-color:aliceblue;
     margin: 0%;
+    padding: 0
 }
 
 p {
@@ -43,6 +51,7 @@ a:hover {
 .maintext {
     width: 75%;
     margin: 0 auto;
+    flex-grow: 1;
 }
 
 .title {
@@ -64,6 +73,16 @@ a:hover {
     justify-content: center;
     /* background-color:rgb(39, 180, 180);
     padding-bottom: 4px; */
+}
+
+.content-wrapper {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex-grow: 1;
 }
 
 #title-link {
