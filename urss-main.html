@@ -7,77 +7,90 @@
         <link rel="icon" href="favicon.ico" type="image/x-icon">
     </head>
     <body>
-        <div class="left-title" style="background-color: #1b805b; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);">
-            <div style="display: flex; flex-direction: row; padding-left: 32px;">
-                <div style="display: flex; justify-content: center; gap:16px">
-                    <h3><a href="projects.html" style="color: #ccd9d4">Projects</a></h3>
-                    <h3><a href="https://github.com/smavanat" style="color: #ccd9d4">Github</a></h3>
-                    <h3><a href="index.html" style="color: #ccd9d4">Main Page</a></h3>
+        <div class = "content-wrapper">
+            <div class="left-title" style="background-color: #1b805b; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);">
+                <div style="display: flex; flex-direction: row; padding-left: 32px;">
+                    <div style="display: flex; justify-content: center; gap:16px">
+                        <h3><a href="projects.html" style="color: #ccd9d4">Projects</a></h3>
+                        <h3><a href="https://github.com/smavanat" style="color: #ccd9d4">Github</a></h3>
+                        <h3><a href="index.html" style="color: #ccd9d4">Main Page</a></h3>
+                    </div>
                 </div>
+            </div><br><br>
+            <div class="maintext">
+                <h1>Discussing my URSS project</h1>
+                <p>
+                    In this article I want to discuss the research I undertook in my <a href = "https://urss.warwick.ac.uk/items/show/766">URSS project</a>. While I have talked about some of the preliminary ideas I had before undertaking the project fully before on this blog <a href = "urss.html">here</a>, now that I have finished the project and submitted my research, I wanted to talk in depth about my expereince and the output produced. Before I get started, if you just want to see the finished code output, you can find it <a href= "https://github.com/smavanat/URSS-2025">here</a>.
+                </p>
+                <p>
+                    Firstoff, what was my research project even about? In short, I was looking into ways of allowing agents to pathfind in a dynamic environment. A dynamic environment is one where the terrain changes though addition or removal in non-predictable ways through environmental, agentic or human actions, rendering the pre-baked navmesh or world grid used useless for pathfinding in the changed terrain. Such environments (usually ones that only focus on destruction) have generally been present in multiplayer games such as <i>Battlefield</i>, <i>The Finals</i>, or <i>Rainbow Six Seige</i>, since a human player can easily intuit how to use such environments to their advantage without any effort on the part of the programmer. An AI agent on the other hand (especially one that does not use any sort of machine learning to dictate its behaviour, which in my opinion would be wasteful and overkill in this case), needs a specific toolset provided to it by the programmer in order to navigate such an environment. The original scope of my research was twofold: to develop a pathfinding system for agents operating in dynamic environments, and to develop ways for agents to manipulate such environments to their own advantage. However, due to time constraints, I was only able to complete the first of my goals, but I only acheived a small part of what I wanted to do with my second goal.
+                </p>
+                <h3> Setting up a Framework </h3>
+                <p>
+                    In order to start working on this project, I first needed to come up with a way of creating dynamic environments. Since I had already spent some time working on a project to create <a href = "sdl.html"> destructible rigidbody textures</a>, I felt that it was a good idea to start with that project as a baseline and build up the rest of my work from there. However, there were some issues. While my other project had been successful in its main goal of creating distructible rigidbodies, there were aspects of it, especially in the way that it handled collider and texture creation and destruction that were not very efficient or scalable. As such, I decided that it was also necessary for me to implement a basic ECS system. I did not spend much time on this addition, and much of my implementation was directly derived from <a href = "https://austinmorlan.com/posts/entity_component_system/">here</a> and <a href = "https://savas.ca/nomad">here</a>. This greatly improved both the performance of my program and the ease in which I was able to manage creating and destroying objects in the game world.
+                </p>
+                <p>
+                    I then started working on the basic systems that I would need, namely a grid system to represent the pathable world and a basic path system that would initially just run A* between a start and end position. On top of this, I felt that it was necessary to create some debug visualiser tools, such as a collider viewer, grid viewer and a path viewer.
+                </p>
+                <h3> The Basic Idea </h3>
+                <p>
+                    In common grid-based pathfinding environments, there is often a binary classification of tiles, those that are <i>passable</i>, and those that are <i>impassable</i>, and most pathfinding algorithms are about finding a path through the passable tiles from a start position to a goal position. In dynamic pathfinding environments, we need to consider the existence of the <i>partial</i> tile, one that has parts that are passable, and those that are impassable, but it is not certain whether an agent of a certain size would be able to fit through this tile. The goal of my research was to modify the A* algorithm so that it could also handle <i>partial</i> tiles.
+                </p>
+                <p>
+                    The best way that I found of determining which parts of a partial tile are walkable is by splitting it up into smaller subcells, and then determining how much of a tile is covered by some impassable object. In my project, the impassable object in question was a box2d collider object, and I used the <a href = "https://dyn4j.org/2010/01/sat/">Seperating Axis Theorem</a> to determining whether a subcell is overlapping with a collider and then I used the <a href = "https://www.sciencedirect.com/science/article/abs/pii/S0098300408002793">Martinez-Finto-Rueda</a> polygon clipping algorithm to determine how much of the subcell was covered by the collider to set its passability status.
+                </p>
+                <p>
+                    Now that I had the ability to update the walkability status of tiles, the next step was to figure out how to pathfind across partial tiles. Our pathfinding algorithm takes four inputs; a vector representing the start position, a vector representing the end position, the grid that I am pathfinding over, and the size of the agent’s bounding box. From these inputs, I can calculate the start grid tile, the end grid tile, as well as the <i>f</i> , <i>g</i> and <i>h</i> cost.
+                </p>
+                <p>
+                    The <i>f</i> , <i>g</i> and <i>h</i> costs are variables that I have carried over from the original A* algorithm, which are defined as follows:
+                </p>
+                <ul>
+                    <li> The <i>g</i> cost is the distance from the start tile to the current tile. </li>
+                    <li>The <i>h</i> cost is the distance from the current tile to the end tile.</li>
+                    <li>The <i>f</i> cost is the sum of the <i>g</i> and <i>h</i> cost. </li>
+                </ul>
+                <p>
+                    The f cost is used to determine the next tile that you want to explore, since the tile with the lowest f cost is (probably) going to be on the shortest path from the current tile to the end tile. Initialise the open list (tiles to visit) and the closed list (tiles that have been  visited), and push the start tile to the open list. remove tiles from the open list one at a time and consider their type. If the current tile is walkable, iterate over its eight possible neighbours, in which there exist three possible cases:
+                </p>
+                <ul>
+                    <li> The neighbour tile is walkable. This is the simplest case. simply update its <i>f</i> , <i>g</i> and <i>h</i> cost, set its parent (the tile that it came from) to be the current tile and push it to the open list </li>
+                    <li>The neighbour tile is partial. In this case we need to check if there is a partial path between the current tile and the neighbour, and update values if there is a partial path as before. </li>
+                </ul>
+                <p> 
+                    If the current tile is partial, then we need to check if there is a partial path between the current tile and its walkable/partial neighbours. However, we cannot just start this partial path from any part of the tile, but specifically from the direction we will be arriving at the current tile, which can be determined by comparing the position of the current tile to its parent. Once a tile has been visited, it is added to the closed list. As in A*, all members of the closed list cannot be iterated over as part of neighbour checks as they have already been visited.
+                </p>
+                <p>
+                    If the current tile is the end tile, we retrace the path by visiting the parent of each tile, and then reversing the final list. If we have exhausted all the tiles present in the open list without happening on the end tile, then there is no path from the start to the end tile.
+                </p>
+                <p>
+                    When determining whether a partial path exists, we begin by creating a “surround grid” - a grid that is made up of the subcells of the current tile and its adjacent neighbours. We then determine the start and end positions of the partial path we want to calculate. This is done by getting the direction of the neighbour we want to go and the direction that we reached the current tile relative to itself. We then iterate over the subcells in the “surround grid” to discern “valid” subcells. We restrict the subcells that we iterate over to be only those within the original tile and within a one-subcell thick border that surrounds it. A subcell is considered “valid” if it is not a filled (unwalkable) subcell, and it would be possible to draw the agent’s bounding box using this subcell as the origin without any filled subcells being contained within its boundary. This is because we are not determining whether the the agent can actually fit onto any of these neighbour tiles, only that the agent can reach it from the current tile. Whether the agent is able to actually do something useful for pathfinding from a neighbour tile will be determined once its turn in the open list has been reached, rather than in the current subcell-based pathfinding.
+                </p>
+                <div style="display: flex; justify-content: center;">
+                    <figure style="text-align: center;">
+                        <img src="/static/images/ValidTilesDemo.png" style="width: 50%; display: block; margin: 0 auto;">
+                        <figcaption>Diagram showing valid subcell positions for a 4x4 agent highlighted in red</figcaption>
+                    </figure>
+                </div>
+                <p>
+                    We then run Breadth-First-Search on these “valid” subcells to see if a path exists between the start position and the end position and return the result. This is therefore the full process by which one can find a path through a dynamic environment, in this case through one that is destructible, but this can easily work in other environments where terrain is added by changing when the calls to update the grid are made.
+                </p>
+                <h3>Closing thoughts</h3>
+                <p>
+                    Over the course of this research project I felt that I learnt a lot about pathfinding and developing agentic systems. While I didn't acheive as much as I wanted, this is certainly an area that I would like to return to in the future. However, there were a few things that began to annoy me towards the end of the development process. The first was the way I had designed the engine backend, it felt cobbled together and very rigid, and the second was my choice of language: C++, as I realised that I didn't really enjoy coding in C++, and I found myself adopting a C-like style of programming towards the end of the project. To this end, I have decided to do a full re-write of this project in C (I did also consider doing it in Zig, but the fact that the language is not fully stable yet put me off doing such a large project in it for now), with a focus on making a strong engine foundation first before moving on to re-implementing the pathfinding systems I developed here. Of course, you can expect to find a documentation of my process on this site as well as code examples on my github in the future.
+                </p>
             </div>
-        </div><br><br>
-        <div class="maintext">
-            <h1>Discussing my URSS project</h1>
-            <p>
-                In this article I want to discuss the research I undertook in my <a href = "https://urss.warwick.ac.uk/items/show/766">URSS project</a>. While I have talked about some of the preliminary ideas I had before undertaking the project fully before on this blog <a href = "urss.html">here</a>, now that I have finished the project and submitted my research, I wanted to talk in depth about my expereince and the output produced. Before I get started, if you just want to see the finished code output, you can find it <a href= "https://github.com/smavanat/URSS-2025">here</a>.
-            </p>
-            <p>
-                Firstoff, what was my research project even about? In short, I was looking into ways of allowing agents to pathfind in a dynamic environment. A dynamic environment is one where the terrain changes though addition or removal in non-predictable ways through environmental, agentic or human actions, rendering the pre-baked navmesh or world grid used useless for pathfinding in the changed terrain. Such environments (usually ones that only focus on destruction) have generally been present in multiplayer games such as <i>Battlefield</i>, <i>The Finals</i>, or <i>Rainbow Six Seige</i>, since a human player can easily intuit how to use such environments to their advantage without any effort on the part of the programmer. An AI agent on the other hand (especially one that does not use any sort of machine learning to dictate its behaviour, which in my opinion would be wasteful and overkill in this case), needs a specific toolset provided to it by the programmer in order to navigate such an environment. The original scope of my research was twofold: to develop a pathfinding system for agents operating in dynamic environments, and to develop ways for agents to manipulate such environments to their own advantage. However, due to time constraints, I was only able to complete the first of my goals, but I only acheived a small part of what I wanted to do with my second goal.
-            </p>
-            <h3> Setting up a Framework </h3>
-            <p>
-                In order to start working on this project, I first needed to come up with a way of creating dynamic environments. Since I had already spent some time working on a project to create <a href = "sdl.html"> destructible rigidbody textures</a>, I felt that it was a good idea to start with that project as a baseline and build up the rest of my work from there. However, there were some issues. While my other project had been successful in its main goal of creating distructible rigidbodies, there were aspects of it, especially in the way that it handled collider and texture creation and destruction that were not very efficient or scalable. As such, I decided that it was also necessary for me to implement a basic ECS system. I did not spend much time on this addition, and much of my implementation was directly derived from <a href = "https://austinmorlan.com/posts/entity_component_system/">here</a> and <a href = "https://savas.ca/nomad">here</a>. This greatly improved both the performance of my program and the ease in which I was able to manage creating and destroying objects in the game world.
-            </p>
-            <p>
-                I then started working on the basic systems that I would need, namely a grid system to represent the pathable world and a basic path system that would initially just run A* between a start and end position. On top of this, I felt that it was necessary to create some debug visualiser tools, such as a collider viewer, grid viewer and a path viewer.
-            </p>
-            <h3> The Basic Idea </h3>
-            <p>
-                In common grid-based pathfinding environments, there is often a binary classification of tiles, those that are <i>passable</i>, and those that are <i>impassable</i>, and most pathfinding algorithms are about finding a path through the passable tiles from a start position to a goal position. In dynamic pathfinding environments, we need to consider the existence of the <i>partial</i> tile, one that has parts that are passable, and those that are impassable, but it is not certain whether an agent of a certain size would be able to fit through this tile. The goal of my research was to modify the A* algorithm so that it could also handle <i>partial</i> tiles.
-            </p>
-            <p>
-                The best way that I found of determining which parts of a partial tile are walkable is by splitting it up into smaller subcells, and then determining how much of a tile is covered by some impassable object. In my project, the impassable object in question was a box2d collider object, and I used the <a href = "https://dyn4j.org/2010/01/sat/">Seperating Axis Theorem</a> to determining whether a subcell is overlapping with a collider and then I used the <a href = "https://www.sciencedirect.com/science/article/abs/pii/S0098300408002793">Martinez-Finto-Rueda</a> polygon clipping algorithm to determine how much of the subcell was covered by the collider to set its passability status.
-            </p>
-            <p>
-                Now that I had the ability to update the walkability status of tiles, the next step was to figure out how to pathfind across partial tiles. Our pathfinding algorithm takes four inputs; a vector representing the start position, a vector representing the end position, the grid that I am pathfinding over, and the size of the agent’s bounding box. From these inputs, I can calculate the start grid tile, the end grid tile, as well as the <i>f</i> , <i>g</i> and <i>h</i> cost.
-            </p>
-            <p>
-                The <i>f</i> , <i>g</i> and <i>h</i> costs are variables that I have carried over from the original A* algorithm, which are defined as follows:
-            </p>
-            <ul>
-                <li> The <i>g</i> cost is the distance from the start tile to the current tile. </li>
-                <li>The <i>h</i> cost is the distance from the current tile to the end tile.</li>
-                <li>The <i>f</i> cost is the sum of the <i>g</i> and <i>h</i> cost. </li>
-            </ul>
-            <p>
-                The f cost is used to determine the next tile that you want to explore, since the tile with the lowest f cost is (probably) going to be on the shortest path from the current tile to the end tile. Initialise the open list (tiles to visit) and the closed list (tiles that have been  visited), and push the start tile to the open list. remove tiles from the open list one at a time and consider their type. If the current tile is walkable, iterate over its eight possible neighbours, in which there exist three possible cases:
-            </p>
-            <ul>
-                <li> The neighbour tile is walkable. This is the simplest case. simply update its <i>f</i> , <i>g</i> and <i>h</i> cost, set its parent (the tile that it came from) to be the current tile and push it to the open list </li>
-                <li>The neighbour tile is partial. In this case we need to check if there is a partial path between the current tile and the neighbour, and update values if there is a partial path as before. </li>
-            </ul>
-            <p> 
-                If the current tile is partial, then we need to check if there is a partial path between the current tile and its walkable/partial neighbours. However, we cannot just start this partial path from any part of the tile, but specifically from the direction we will be arriving at the current tile, which can be determined by comparing the position of the current tile to its parent. Once a tile has been visited, it is added to the closed list. As in A*, all members of the closed list cannot be iterated over as part of neighbour checks as they have already been visited.
-            </p>
-            <p>
-                If the current tile is the end tile, we retrace the path by visiting the parent of each tile, and then reversing the final list. If we have exhausted all the tiles present in the open list without happening on the end tile, then there is no path from the start to the end tile.
-            </p>
-            <p>
-                When determining whether a partial path exists, we begin by creating a “surround grid” - a grid that is made up of the subcells of the current tile and its adjacent neighbours. We then determine the start and end positions of the partial path we want to calculate. This is done by getting the direction of the neighbour we want to go and the direction that we reached the current tile relative to itself. We then iterate over the subcells in the “surround grid” to discern “valid” subcells. We restrict the subcells that we iterate over to be only those within the original tile and within a one-subcell thick border that surrounds it. A subcell is considered “valid” if it is not a filled (unwalkable) subcell, and it would be possible to draw the agent’s bounding box using this subcell as the origin without any filled subcells being contained within its boundary. This is because we are not determining whether the the agent can actually fit onto any of these neighbour tiles, only that the agent can reach it from the current tile. Whether the agent is able to actually do something useful for pathfinding from a neighbour tile will be determined once its turn in the open list has been reached, rather than in the current subcell-based pathfinding.
-            </p>
-            <div style="display: flex; justify-content: center;">
-                <figure style="text-align: center;">
-                    <img src="/static/images/ValidTilesDemo.png" style="width: 50%; display: block; margin: 0 auto;">
-                    <figcaption>Diagram showing valid subcell positions for a 4x4 agent highlighted in red</figcaption>
-                </figure>
-            </div>
-            <p>
-                We then run Breadth-First-Search on these “valid” subcells to see if a path exists between the start position and the end position and return the result. This is therefore the full process by which one can find a path through a dynamic environment, in this case through one that is destructible, but this can easily work in other environments where terrain is added by changing when the calls to update the grid are made.
-            </p>
-            <h3>Closing thoughts</h3>
-            <p>
-                Over the course of this research project I felt that I learnt a lot about pathfinding and developing agentic systems. While I didn't acheive as much as I wanted, this is certainly an area that I would like to return to in the future. However, there were a few things that began to annoy me towards the end of the development process. The first was the way I had designed the engine backend, it felt cobbled together and very rigid, and the second was my choice of language: C++, as I realised that I didn't really enjoy coding in C++, and I found myself adopting a C-like style of programming towards the end of the project. To this end, I have decided to do a full re-write of this project in C (I did also consider doing it in Zig, but the fact that the language is not fully stable yet put me off doing such a large project in it for now), with a focus on making a strong engine foundation first before moving on to re-implementing the pathfinding systems I developed here. Of course, you can expect to find a documentation of my process on this site as well as code examples on my github in the future.
-            </p>
+
+            <!-- Footer -->
+            <footer style="background-color: #384d3f; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1); padding: 10px 0; color: white; text-align: center;">
+              <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
+                <h4 style="color: #ccd9d4">Contact me at: 
+                  <a href="mailto:edwin.hadass@hotmail.com" style="color: white; text-decoration: underline;">
+                    edwin.hadass@hotmail.com
+                  </a>
+                </h4>
+              </div>
+            </footer>
         </div>
     </body>
 </html>

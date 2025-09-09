@@ -7,130 +7,143 @@
         <link rel="icon" href="favicon.ico" type="image/x-icon">
     </head>
     <body>
-        <div class="left-title" style="background-color: #1b805b; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);">
-            <div style="display: flex; flex-direction: row; padding-left: 32px;">
-                <div style="display: flex; justify-content: center; gap:16px">
-                    <h3><a href="projects.html" style="color: #ccd9d4">Projects</a></h3>
-                    <h3><a href="https://github.com/smavanat" style="color: #ccd9d4">Github</a></h3>
-                    <h3><a href="index.html" style="color: #ccd9d4">Main Page</a></h3>
+        <div class = "content-wrapper">
+            <div class="left-title" style="background-color: #1b805b; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);">
+                <div style="display: flex; flex-direction: row; padding-left: 32px;">
+                    <div style="display: flex; justify-content: center; gap:16px">
+                        <h3><a href="projects.html" style="color: #ccd9d4">Projects</a></h3>
+                        <h3><a href="https://github.com/smavanat" style="color: #ccd9d4">Github</a></h3>
+                        <h3><a href="index.html" style="color: #ccd9d4">Main Page</a></h3>
+                    </div>
                 </div>
+            </div><br><br>
+            <div class="maintext">
+                <h1>Reflections on making a simple game engine using Monogame</h1>
+                <p>
+                    A few years ago I started working on a project to make a videogame engine using the C# <a href="https://monogame.net/">Monogame</a> framework.
+                    My aims in this project where twofold: first, to gain a better grasp of C# and programming in general, and second, to learn 
+                    more about the game development process at an incredibly low level. While I have not been able to fully complete this project, I can 
+                    safely say that I learnt a lot of things, and I would like to share some of them.
+                </p>
+                <h3>The Basics</h3>
+                <p>
+                    Monogame is a simple C#-based framework mostly used for game development. It handles features such as image rendering, audio input/output, user input
+                    etc. It has been used in many successful indie titles such as Terraria and Stardew Valley, but the main reason that I decided to settle on it was because
+                    I already had some experience working with C# in more fully-fledged engines such as Unity and Godot, and Monogame felt like a natural 
+                    progression. One thing that Monogame does do for you is have baseline <strong>Initialize</strong>, <strong>LoadContent</strong>, <strong>Update</strong>,
+                    and <strong>Draw</strong> functions, which makes it much easier to define and allocate your functionality in separate areas.
+                </p>
+                <p>
+                    One of the first things that I did was identify and define the basic components of my Game Engine. <a href="https://www.gamedeveloper.com/game-platforms/how-to-make-your-own-c-game-engine">This</a>
+                    amazing article from Game Developer goes into depth on the process in designing and creating your own game engine, and I found it very helpful
+                    and instructional during my entire process. Since Monogame already handles input and updates for us, we only need to worry about building the rest of our
+                    engine. The article discusses the Entity-Component-System (ECS), in which all parts of the game engine that the programmer and user interacts with could 
+                    be categorised as either entities or components. Entities are essentially labelled containers, which on their own have no special properties, but can be filled
+                    with all sorts of components, which are reusable trackers or peices of data, such as Sprite, rigidbodies, coordinates and so on. By attaching, removing, or changing
+                    different components on an entity, we can change its properties and the actions that it is able to take. 
+                </p>
+                <p>
+                    I decided that my Entity-Component-System would work slightly differently to the kind described in the Game Developer article, and more like the 
+                    <a href="https://docs.godotengine.org/en/stable/getting_started/step_by_step/nodes_and_scenes.html">Node system</a> from Godot, where the distinction between
+                    Entities and Components is a bit more blurred, with entities being reused as components in other entities. As such, I defined a <strong>Component</strong> class
+                    that would act as the base for the rest of the systems that I build upon. This <strong>Component</strong> class would only track its parent and a List of its current 
+                    children.
+                </p>
+                <p>
+                    To begin with, I thought that my system would only really require two kinds of components; sprites and Colliders. Sprites where fairly easily to do. They simply 
+                    contained a texture, a position, rotation and a velocity. They did not define any sort of functionality for rendering or for updating. This, I determined, would be 
+                    defined by classes that used Sprites as part of their functionality. Colliders were more difficult to implement. I decided to forego using an existing 2D physics engine,
+                    such as a C# wrapper for Box2D, partially because I wanted to have a go at making some of this functionality myself, and also because at this time I was very new to this entire
+                    process, and having not done my research, I did not even know such things existed. My collision system was to be very basic; every frame, some "Physics Manager" (which I was
+                    yet to create) would check if two colliders where overlapping, and if they where, it would toggle an <i>isColliding</i> variable to true, which would then prevent
+                    the objects from moving. The collider itself would just be a rectangle of the rough dimension of the texture that it was associated with.
+                </p>
+                <p>
+                    Through some research (that perhaps would have been more useful at an earlier date), I happened on the concept of <a href="https://code.tutsplus.com/quick-tip-use-quadtrees-to-detect-likely-collisions-in-2d-space--gamedev-374t">quadtrees</a>. 
+                    Quadtrees are trees where every non-leaf node has four children. They are useful in collision detection because instead of checking all the possible pairs of colliders, you can
+                    divide the game world into four regions which are held in a quadtree, and for each of those regions, keep dividing them into subregions, until all regions in the tree contain at most
+                    <i>n</i> colliders. Then you only need to compare pairs of colliders in each scene, drastically reducing the number of collisions you need to check every frame and massively 
+                    increasing the efficiency of your program. This would become the "Physics Manager" that I spoke of earlier.
+                </p>
+                <p>
+                    The last thing that I would need to do would be to add a management system for components, just like for physics objects, so that I could do batch Update and Draw calls 
+                    in the main game file. This resulted in the <strong>EntityManger</strong> class, which simply kept a list of all Components, Sprites and Colliders, and called functions unique
+                    to these three types and updates the game world and various toggleable variables accordingly.
+                </p>
+                <h3>Extra Features</h3>
+                <h4>Main Grid</h4>
+                <p>
+                    I decided to focus on attempting to build my game engine around a grid-based system. To this end, each grid (a 2D-array), would contain rows
+                    of nodes, each of which was the same size, and held in itself an internal sprite. To keep things simple, I started with some wall and floor nodes.
+                    However, I found it tedious to manually enter values for the array node-types, so instead I came up with a system where the program would interpret
+                    a value-map stored in an xml file to create the world grid, which made modifying the grid and adding new node types much easier.
+                </p>
+                <h4>NPC AI</h4>
+                <p>
+                    Another thing that I experimented with was AI systems for NPCs that would be used within the game engine. Since I wanted to have agents that were capable
+                    of quite complex behaviours, I decided to forgo the traditional Finite State Machines (FSM), since they would become very bloated quite quickly.
+                    Instead, I first tried to have a go at implementing Behaviour Trees, inspired by <a href="https://www.gamedeveloper.com/programming/behavior-trees-for-ai-how-they-work">this</a> article.
+                    However, I found them to be just as prone to bloat as FSMs, with the added downside that they required more work to implement a basic framework. 
+                </p>
+                <p>
+                    Instead, I decided to use <a href="https://medium.com/@vedantchaudhari/goal-oriented-action-planning-34035ed40d0b">Goal-Oriented-Action-Planning</a> (GOAP) as the basis for my AI systems. GOAP 
+                    uses a planning system combined with a series of actions to complete a particular action. Each action has a <i>pre-condition</i> and a <i>post-condition</i>, which denote
+                    the state the world has to be in for the action to take place. Therefore, given an agent's starting state and desired end state, a planner can string actions together
+                    to create a viable path to achieve the goal. The agent completes each action using a simple state machine, which has three states, WALK, ACTION, and IDLE, with ACTION being the action
+                    popped off the planner to be completed. This makes GOAP far more modular and easier to implement than Behaviour Trees or FSMs, since once the basic planner and state machine framework 
+                    has been completed, the programmer only needs to focus on creating new actions rather than entire action paths, since this is handled directly by the algorithm.
+                </p>
+                <p>
+                    In my program, there is a simple demonstration of GOAP in action using two agents with new Node types. One is a "farmer" that harvests seeds from grass, and the other is a 
+                    "woodcutter" that chops wood and brings it to a drop-off point. While these are not particularly complex, they do show off the functionality of GOAP.
+                </p>
+                <h3>My Reflections on this project</h3>
+                <p>
+                    Looking back on this work as I am writing this, a year and a half after I stopped working on it, it is hard not to be a little disappointed. The memory of this project that I had in my 
+                    mind is a far cry from the reality with which I am presented. While I am proud of certain aspects of this project, my experience working on other related ideas, notably my SDL destruction system,
+                    has made the faults of this program, which were visible before, far more obvious now. In this section, I want to go over various aspects of this program, and discuss my current thoughts. Perhaps
+                    in the future, I may implement some of my suggestions in a new, updated program, and leave the link here at the bottom so that readers can compare the improvement that a few 
+                    years of experience makes.
+                </p>
+                <h4>The ECS System</h4>
+                <p>
+                    I felt that this system was designed in a haphazard, make-it-up-as-you-go-along fashion, reflective of the fact that this was my first attempt at designing something like this.
+                    Some parts of the system were unnecessarily confusing and had strange overlaps, such as the base "Component" class having its own virtual Draw method. On the positive side, I do think 
+                    that the Entity manager was implemented correctly, and I think that I was along the right lines when defining parent-child relationships, however I think the system could use a re-work
+                    to make it more generalised. In terms of the individual components, the Sprite class was implemented well, however I think positional functionality should be its own thing as part of the 
+                    base-entity, rather than only an integral part of the Sprite. The Collider on the other hand was in my opinion implemented very poorly. It only works for un-rotated colliders, and does not 
+                    work well when colliding, either causing the colliding entity to stop irreversibly or causing strange jittering. It would be better to just use a C# wrapper for 
+                    Box2D, such as <a href="https://github.com/thomasvt/Box2dNet">this</a> one, since I have experience with working with Box2D from my other work.
+                </p>
+                <h4>The Grid</h4>
+                <p>
+                    This system actually works very well, however it is quite barebones. A visual tile editor, rather than fiddling around with XML, would be much better. Modifications to the tile editor could
+                    generate an XML file, which would then be read by the system to create the grid. It would also be good to focus on multi-tile objects such as beds or doors, and also on how 
+                    to place interactable objects and how those would affect the make-up of the grid. Some early attempts at this can be seen in the grass and wood for the AI agent demo.
+                </p>
+                <h4>The AI Agents</h4>
+                <p>
+                    The basics of GOAP is functional, however there is not much variety in actions or ability. The system, is at this point, just a very bare-bones tech demo, and could use some variety in actions,
+                    (which also need to be complemented by more engine functionality for the agents to take advantage of), in order to create more diverse and complex systems.
+                </p>
+                <br>
+                <p>
+                    Overall, as a learning exercise that helped me understand more about game engines and programming, and gave me the confidence to attempt more advanced and complex projects,
+                    I think this worked very well. As a functional program? Not so much. I think this whole thing could use a top-down review, which I plan on attempting sometime in the future
+                    when I have a moment to spare. For now, the code for the current version can be found on my <a href="https://github.com/smavanat/Monogame-Engine/tree/master">github</a>.
+                </p>
             </div>
-        </div><br><br>
-        <div class="maintext">
-            <h1>Reflections on making a simple game engine using Monogame</h1>
-            <p>
-                A few years ago I started working on a project to make a videogame engine using the C# <a href="https://monogame.net/">Monogame</a> framework.
-                My aims in this project where twofold: first, to gain a better grasp of C# and programming in general, and second, to learn 
-                more about the game development process at an incredibly low level. While I have not been able to fully complete this project, I can 
-                safely say that I learnt a lot of things, and I would like to share some of them.
-            </p>
-            <h3>The Basics</h3>
-            <p>
-                Monogame is a simple C#-based framework mostly used for game development. It handles features such as image rendering, audio input/output, user input
-                etc. It has been used in many successful indie titles such as Terraria and Stardew Valley, but the main reason that I decided to settle on it was because
-                I already had some experience working with C# in more fully-fledged engines such as Unity and Godot, and Monogame felt like a natural 
-                progression. One thing that Monogame does do for you is have baseline <strong>Initialize</strong>, <strong>LoadContent</strong>, <strong>Update</strong>,
-                and <strong>Draw</strong> functions, which makes it much easier to define and allocate your functionality in separate areas.
-            </p>
-            <p>
-                One of the first things that I did was identify and define the basic components of my Game Engine. <a href="https://www.gamedeveloper.com/game-platforms/how-to-make-your-own-c-game-engine">This</a>
-                amazing article from Game Developer goes into depth on the process in designing and creating your own game engine, and I found it very helpful
-                and instructional during my entire process. Since Monogame already handles input and updates for us, we only need to worry about building the rest of our
-                engine. The article discusses the Entity-Component-System (ECS), in which all parts of the game engine that the programmer and user interacts with could 
-                be categorised as either entities or components. Entities are essentially labelled containers, which on their own have no special properties, but can be filled
-                with all sorts of components, which are reusable trackers or peices of data, such as Sprite, rigidbodies, coordinates and so on. By attaching, removing, or changing
-                different components on an entity, we can change its properties and the actions that it is able to take. 
-            </p>
-            <p>
-                I decided that my Entity-Component-System would work slightly differently to the kind described in the Game Developer article, and more like the 
-                <a href="https://docs.godotengine.org/en/stable/getting_started/step_by_step/nodes_and_scenes.html">Node system</a> from Godot, where the distinction between
-                Entities and Components is a bit more blurred, with entities being reused as components in other entities. As such, I defined a <strong>Component</strong> class
-                that would act as the base for the rest of the systems that I build upon. This <strong>Component</strong> class would only track its parent and a List of its current 
-                children.
-            </p>
-            <p>
-                To begin with, I thought that my system would only really require two kinds of components; sprites and Colliders. Sprites where fairly easily to do. They simply 
-                contained a texture, a position, rotation and a velocity. They did not define any sort of functionality for rendering or for updating. This, I determined, would be 
-                defined by classes that used Sprites as part of their functionality. Colliders were more difficult to implement. I decided to forego using an existing 2D physics engine,
-                such as a C# wrapper for Box2D, partially because I wanted to have a go at making some of this functionality myself, and also because at this time I was very new to this entire
-                process, and having not done my research, I did not even know such things existed. My collision system was to be very basic; every frame, some "Physics Manager" (which I was
-                yet to create) would check if two colliders where overlapping, and if they where, it would toggle an <i>isColliding</i> variable to true, which would then prevent
-                the objects from moving. The collider itself would just be a rectangle of the rough dimension of the texture that it was associated with.
-            </p>
-            <p>
-                Through some research (that perhaps would have been more useful at an earlier date), I happened on the concept of <a href="https://code.tutsplus.com/quick-tip-use-quadtrees-to-detect-likely-collisions-in-2d-space--gamedev-374t">quadtrees</a>. 
-                Quadtrees are trees where every non-leaf node has four children. They are useful in collision detection because instead of checking all the possible pairs of colliders, you can
-                divide the game world into four regions which are held in a quadtree, and for each of those regions, keep dividing them into subregions, until all regions in the tree contain at most
-                <i>n</i> colliders. Then you only need to compare pairs of colliders in each scene, drastically reducing the number of collisions you need to check every frame and massively 
-                increasing the efficiency of your program. This would become the "Physics Manager" that I spoke of earlier.
-            </p>
-            <p>
-                The last thing that I would need to do would be to add a management system for components, just like for physics objects, so that I could do batch Update and Draw calls 
-                in the main game file. This resulted in the <strong>EntityManger</strong> class, which simply kept a list of all Components, Sprites and Colliders, and called functions unique
-                to these three types and updates the game world and various toggleable variables accordingly.
-            </p>
-            <h3>Extra Features</h3>
-            <h4>Main Grid</h4>
-            <p>
-                I decided to focus on attempting to build my game engine around a grid-based system. To this end, each grid (a 2D-array), would contain rows
-                of nodes, each of which was the same size, and held in itself an internal sprite. To keep things simple, I started with some wall and floor nodes.
-                However, I found it tedious to manually enter values for the array node-types, so instead I came up with a system where the program would interpret
-                a value-map stored in an xml file to create the world grid, which made modifying the grid and adding new node types much easier.
-            </p>
-            <h4>NPC AI</h4>
-            <p>
-                Another thing that I experimented with was AI systems for NPCs that would be used within the game engine. Since I wanted to have agents that were capable
-                of quite complex behaviours, I decided to forgo the traditional Finite State Machines (FSM), since they would become very bloated quite quickly.
-                Instead, I first tried to have a go at implementing Behaviour Trees, inspired by <a href="https://www.gamedeveloper.com/programming/behavior-trees-for-ai-how-they-work">this</a> article.
-                However, I found them to be just as prone to bloat as FSMs, with the added downside that they required more work to implement a basic framework. 
-            </p>
-            <p>
-                Instead, I decided to use <a href="https://medium.com/@vedantchaudhari/goal-oriented-action-planning-34035ed40d0b">Goal-Oriented-Action-Planning</a> (GOAP) as the basis for my AI systems. GOAP 
-                uses a planning system combined with a series of actions to complete a particular action. Each action has a <i>pre-condition</i> and a <i>post-condition</i>, which denote
-                the state the world has to be in for the action to take place. Therefore, given an agent's starting state and desired end state, a planner can string actions together
-                to create a viable path to achieve the goal. The agent completes each action using a simple state machine, which has three states, WALK, ACTION, and IDLE, with ACTION being the action
-                popped off the planner to be completed. This makes GOAP far more modular and easier to implement than Behaviour Trees or FSMs, since once the basic planner and state machine framework 
-                has been completed, the programmer only needs to focus on creating new actions rather than entire action paths, since this is handled directly by the algorithm.
-            </p>
-            <p>
-                In my program, there is a simple demonstration of GOAP in action using two agents with new Node types. One is a "farmer" that harvests seeds from grass, and the other is a 
-                "woodcutter" that chops wood and brings it to a drop-off point. While these are not particularly complex, they do show off the functionality of GOAP.
-            </p>
-            <h3>My Reflections on this project</h3>
-            <p>
-                Looking back on this work as I am writing this, a year and a half after I stopped working on it, it is hard not to be a little disappointed. The memory of this project that I had in my 
-                mind is a far cry from the reality with which I am presented. While I am proud of certain aspects of this project, my experience working on other related ideas, notably my SDL destruction system,
-                has made the faults of this program, which were visible before, far more obvious now. In this section, I want to go over various aspects of this program, and discuss my current thoughts. Perhaps
-                in the future, I may implement some of my suggestions in a new, updated program, and leave the link here at the bottom so that readers can compare the improvement that a few 
-                years of experience makes.
-            </p>
-            <h4>The ECS System</h4>
-            <p>
-                I felt that this system was designed in a haphazard, make-it-up-as-you-go-along fashion, reflective of the fact that this was my first attempt at designing something like this.
-                Some parts of the system were unnecessarily confusing and had strange overlaps, such as the base "Component" class having its own virtual Draw method. On the positive side, I do think 
-                that the Entity manager was implemented correctly, and I think that I was along the right lines when defining parent-child relationships, however I think the system could use a re-work
-                to make it more generalised. In terms of the individual components, the Sprite class was implemented well, however I think positional functionality should be its own thing as part of the 
-                base-entity, rather than only an integral part of the Sprite. The Collider on the other hand was in my opinion implemented very poorly. It only works for un-rotated colliders, and does not 
-                work well when colliding, either causing the colliding entity to stop irreversibly or causing strange jittering. It would be better to just use a C# wrapper for 
-                Box2D, such as <a href="https://github.com/thomasvt/Box2dNet">this</a> one, since I have experience with working with Box2D from my other work.
-            </p>
-            <h4>The Grid</h4>
-            <p>
-                This system actually works very well, however it is quite barebones. A visual tile editor, rather than fiddling around with XML, would be much better. Modifications to the tile editor could
-                generate an XML file, which would then be read by the system to create the grid. It would also be good to focus on multi-tile objects such as beds or doors, and also on how 
-                to place interactable objects and how those would affect the make-up of the grid. Some early attempts at this can be seen in the grass and wood for the AI agent demo.
-            </p>
-            <h4>The AI Agents</h4>
-            <p>
-                The basics of GOAP is functional, however there is not much variety in actions or ability. The system, is at this point, just a very bare-bones tech demo, and could use some variety in actions,
-                (which also need to be complemented by more engine functionality for the agents to take advantage of), in order to create more diverse and complex systems.
-            </p>
-            <br>
-            <p>
-                Overall, as a learning exercise that helped me understand more about game engines and programming, and gave me the confidence to attempt more advanced and complex projects,
-                I think this worked very well. As a functional program? Not so much. I think this whole thing could use a top-down review, which I plan on attempting sometime in the future
-                when I have a moment to spare. For now, the code for the current version can be found on my <a href="https://github.com/smavanat/Monogame-Engine/tree/master">github</a>.
-            </p>
+
+            <!-- Footer -->
+            <footer style="background-color: #384d3f; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1); padding: 10px 0; color: white; text-align: center;">
+              <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
+                <h4 style="color: #ccd9d4">Contact me at: 
+                  <a href="mailto:edwin.hadass@hotmail.com" style="color: white; text-decoration: underline;">
+                    edwin.hadass@hotmail.com
+                  </a>
+                </h4>
+              </div>
+            </footer>
         </div>
     </body>
 </html>

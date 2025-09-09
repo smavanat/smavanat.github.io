@@ -7,217 +7,230 @@
         <link rel="icon" href="favicon.ico" type="image/x-icon">
     </head>
     <body>
-        <div class="left-title" style="background-color: #1b805b; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);">
-            <div style="display: flex; flex-direction: row; padding-left: 32px;">
-                <div style="display: flex; justify-content: center; gap:16px">
-                    <h3><a href="projects.html" style="color: #ccd9d4">Projects</a></h3>
-                    <h3><a href="https://github.com/smavanat" style="color: #ccd9d4">Github</a></h3>
-                    <h3><a href="index.html" style="color: #ccd9d4">Main Page</a></h3>
+        <div class = "content-wrapper">
+            <div class="left-title" style="background-color: #1b805b; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);">
+                <div style="display: flex; flex-direction: row; padding-left: 32px;">
+                    <div style="display: flex; justify-content: center; gap:16px">
+                        <h3><a href="projects.html" style="color: #ccd9d4">Projects</a></h3>
+                        <h3><a href="https://github.com/smavanat" style="color: #ccd9d4">Github</a></h3>
+                        <h3><a href="index.html" style="color: #ccd9d4">Main Page</a></h3>
+                    </div>
                 </div>
+            </div><br><br>
+            <div class="maintext">
+                <h1>Designing a 2D destruction system using SDL</h1>
+                <p>I was inspired by <a href="https://www.youtube.com/watch?v=prXuyMCgbTc&ab_channel=GameDevelopersConference">Petri Purho’s GDC talk</a> on the destruction systems used in Noita to try and 
+                    recreate these technologies for future use in some of my own projects and as a way of learning the basics of SDL and C++. In his talk, he described 
+                    four principal steps in this process:</p>
+                <ul>
+                    <li>Tracing the outline of the image using Marching Squares.</li>
+                    <li>Simplifying the outline using Ramer-Douglas-Peucker.</li>
+                    <li>Triangulating the resulting shape.</li>
+                    <li>Passing these triangles to Box2D so that it can create a physics rigidbody to go along 
+                        with the texture.</li>
+                </ul>
+                <h3>Part 1: The Foundations of My Program</h3>
+                <p>Before I could start implementing the steps described by Purho, I had to first create a basic texture class within SDL
+                    that I could then iterate upon to create the rest of my project. Luckily I managed to find <a href="https://lazyfoo.net/tutorials/SDL/index.php">Lazy Foo' Productions' SDL tutorials</a>,
+                    which are a great resource for learning SDL at any level of familiarity with the library, and I followed
+                    their tutorial on basic texture modification, which introduces the idea of a Pixel Buffer. A Pixel Buffer in 
+                    SDL is an array that stores the RGB(A) values of all the pixels in a certain texture. Modifying the values
+                    in the Pixel Buffer allows you to change the colour of pixels in the texture, which is useful because it is
+                    impossible to get rid of pixels in a texture. But if I set a pixel be white and transparent, it could be said
+                    to have been "erased" because it is practically invisible to the human eye. This is incredibly useful in SDL, since
+                    all textures have to be squares or rectangles, so if you want to represent other shapes like circles or triangles
+                    as a texture, you need to fill in the empty space with transparent pixels. Moreover, you can erase or destroy bits of 
+                    textures by just setting their pixels to be transparent.
+                </p>
+                <h4>Creating Erasing Functionality</h4>
+                <p>A basic prerequisite to creating a system for simulating destructible rigidbodies is to be able to well, destroy things.
+                    Since I didn't want to create a full game (it would have taken far too long and it would have been beyond my capabilities
+                    in SDL at that point), I instead decided to go down a much simpler route and make a simple eraser that when 
+                    dragged over a texture, would get the eraser's coordinates relative to the textures origin, and "erase" pixels in a circle by turning them white and transparent (setting their RGBA values
+                    in the pixel buffer to 0xff, 0xff, 0xff, 0x00). Once I had finished this implementation and fixed a few small bugs, I added
+                    a variable to control the radius of the circle of erasure, I considered myself ready to move on. 
+                </p>
+                <h4>Getting Pixel Regions</h4>
+                <p>This was by far the part of this project that I wasted the most time on. My first, and worst, idea was to isolate
+                    regions by tracing their outline and determining which pixels where in each region by comparing their array positions.
+                    This idea, both idiotic and over-complicated, resulted in me wasting a lot of time trying to desperately patch it into 
+                    something workable, refusing to admit that the whole idea was terrible. Eventually I simply gave up. The only useful
+                    thing that I learnt from that experience was how to efficiently use C++ arrays to simulate 2D grids. C++ does not
+                    support multi-dimensional arrays, which is slightly annoying when dealing with arrays of pixels in a texture
+                    and it is useful to know the pixels (x,y) coordinate relative to the top left corner of the texture. Luckily 
+                    determining these values is quite easy if you know the width of the texture in pixels, and the index of the pixel
+                    in the Pixel Buffer. The x-position is simply index % width, and the y-position is floor(index/width).
+                </p>
+                <p>
+                    I took a break from this problem for a little while, and after I came back with clearer vision and I did some research, 
+                    I discovered the flood-fill algorithm. The flood-fill algorithm is essentially just breadth-first-search with some additions.
+                    Used in things like the "fill" tool that can be found ubiquitously in programs such as Paint and Word, it traverses
+                    a texture until it finds a colourless pixel, colours it, and uses breadth-first-search to find all the colourless pixels that
+                    can be reach from this first pixel, colours them in, and repeats this process until no more colourless pixels remain.
+                    I thought that I could use a modified version of flood-fill to find regions of coloured pixels so that I could then use them
+                    to create new textures. My modified version of flood-fill works as follows:
+                </p>
+                <ol>
+                    <li>Start with a Pixel Buffer from a texture, an empty vector and an int array representing which pixels we have already visited. Initially all pixels are set to unvisited.</li>
+                    <li>Find a coloured pixel.</li>
+                    <li>Add its index in the Pixel Buffer to the vector.</li>
+                    <li>Set it to be visited in the array.</li>
+                    <li>Perform breadth-first-search to find all the other coloured pixels that can be reached from this pixel and repeat.</li>
+                    <li>Sort the vector of indexes and return it.</li>
+                </ol>
+                <p>
+                    While most of the steps are intuitive, the reason for returning the indexes of the pixels is not immediately obvious.
+                    Surely it would be better to return the colours instead? No. The reason that it is the indexes I am interested in rather
+                    than colours is because as I have said before, the indexes are the closest thing there is to a pixel coordinate, and
+                    coordinates are needed so that a new, smaller, texture can be created with the correct pixel positioning. Colours can be 
+                    re-obtained at a later date by just indexing the Pixel Buffer. This then leads onto the next question; why is
+                    it necessary to sort the vector? The vector must be sorted so that a correct ordering of pixels occurs so that new
+                    textures created from this data can be arranged properly. I will go into more detail about this in the next section.
+                </p>
+                <h4>Creating New Textures</h4>
+                <p>
+                    Now that I had the ability to get regions of pixels that were created by "destroying" the original
+                    texture, I needed to figure out how to create a new texture from this data. More specifically, I needed
+                    to figure out how to create a new Pixel Buffer from this data that was formatted correctly, because then
+                    I could pass it to a built-in SDL function that would do all the hard work of creating a new Texture for me.
+                    The first step would be to figure out the size of the buffer, and since all textures in SDL are rectangular, 
+                    this would mean finding the width and the height of the new texture. Height is the easier of the two to find, 
+                    simply being the "y coordinate" of the last element in the sorted vector minus the "y coordinate" of the first
+                    element in the sorted vector. Width was slightly harder to find. I needed to find the minimal and maximal values
+                    of index % originalTextureWidth, and then find the difference between them. Lastly, I had to add 1 to both the 
+                    width and the height, as coordinates are zero-indexed.
+                </p>
+                <p>
+                    The next step was to actually create the new Pixel Buffer, starting with an array of size width*height filled 
+                    with transparent pixels. Now I had to figure out how to properly copy over the colours of pixels at the correct
+                    positions so they kept the proper arrangement. The first important thing to note is just as there is a way to 
+                    get x and y coordinates from array indexes in a 1D array, it is also possible to get the index from the x and y coordinates,
+                    if you happen to know the width, using the formula (y*width) + x. Therefore, finding the x and y coordinates of 
+                    the current pixel relative to the new texture makes it very easy to add it to the new texture in the correct position. 
+                    This is also why I sorted the vector earlier, as it makes it much easier to detect when a change of y coordinate has occurred.
+                </p>
+                <p>
+                    Lastly, I set all of the pixels in the current region to colourless and instead instantiate a new texture
+                    where the pixels would be. This means I can run the flood-fill again to find the next region and repeat the 
+                    texture-creation process on it, so that eventually I end up with the original texture being completely blank, 
+                    which I can subsequently delete. This results in some useless processing when the texture has only been modified,
+                    and not completely split into pieces, but this can be easily fixed by changing the order you do things in, if 
+                    performance is a major issue.
+                </p>
+                <h3>Part 2: Adding Physics to the Textures</h3>
+                <h4>Marching Squares</h4>
+                <p>Now that I had the basics of this system working, it was time to actually implement the process that Purho had spoken about. 
+                    I am not going to go into detail on the algorithm of Marching Squares itself since it is a well documented
+                    topic on the internet, however you can find some of the sources that I used (that are quite good) <a href="https://barradeau.com/blog/?p=391">here</a>
+                    and <a href="https://emanueleferonato.com/2013/03/01/using-marching-squares-algorithm-to-trace-the-contour-of-an-image/">here</a>.
+                    A brief summary of Marching Squares is that it traces the outline of a texture using 2x2 squares of pixels to determine which direction 
+                    you should move in. Since there are only 16 possible 2x2 squares of pixels that can be formed (if we only take a binary of coloured and colourless),
+                    it is fairly easy to assign a direction to each of the possible squares, except square 0 (with no coloured pixels) and square 15 (with no colourless pixels),
+                    since at these squares it is impossible to know which way to move, and if your Marching Squares encounters them, something has likely gone wrong.
+                    However, I would like to speak specifically about an issue that I encountered while implementing the algorithm, and how I was able to solve it.
+                </p>
+                <p>
+                    The issue in question is the fact that Marching Squares, even when properly implemented, would struggle to find the correct outline for
+                    shapes, and would often get confused when dealing with straight lines that ran across the very edge of the texture. The reason
+                    for this was because, as I described earlier, had in an effort to make my textures as compact as possible not allowed for borders
+                    of colourless pixels to form around the main image. This meant that whenever the algorithm reached the edge in a texture that was 
+                    almost or completely filled, it would encounter square 15, become confused as it did not know which way to go next, and then break.
+                    In my attempts to fix this issue, I did experiment with having the algorithm check if it was at an edge based on the index of the pixel
+                    it was currently at, however this made the algorithm quite bloated and introduced more errors than it solved. Rather I found it easier to
+                    add 1-pixel thick colourless border when creating new textures, which would allow Marching Squares to work seamlessly without any
+                    extra additions.
+                </p>
+                <h4>Ramer-Douglas-Peucker</h4>
+                <p>
+                    I will go into slightly more detail about the Ramer-Douglas-Peucker algorithm than I did about Marching Squares since it is slightly less
+                    well known, however <a href="https://www.youtube.com/watch?v=nSYw9GrakjY&ab_channel=TheCodingTrain">this</a> YouTube video provides a quite 
+                    good explanation as well as the basis of the code that I used for my implementation. Essentially, RDP is a way of taking a line that is 
+                    made up of many discrete points, and simplifying it to retain the key features of the line while losing some detail. It is a recursive algorithm, 
+                    working along the following steps:
+                </p>
+                <ol>
+                    <li>Start with a line made up of discrete points</li>
+                    <li>Draw an imaginary line between the start and end points</li>
+                    <li>Find the point, v, that is the furthest from this line</li>
+                    <li>Compare if the distance of the point v from the imaginary line is longer than some arbitrary value ε. If it is, continue, otherwise the algorithm ends</li>
+                    <li>Repeat steps 2 to 5 on the segment of the line enclosed in the regions [start, v] and [v, end]</li>
+                </ol>
+                <p>
+                    A more detailed explanation of ε than "some arbitrary value" would be the <i>detail factor</i> of the line, i.e. how many
+                    points from the original line do you want the algorithm to keep. For example, if ε was 0, all the points in the line would 
+                    be kept by RDP, and as ε tends to infinity, the line produced by RDP tends to a straight line between the start and end points.
+                    I recommend experimenting with different values of ε to use in RDP, and use what works best for you. 
+                </p>
+                <h4>Box2D Rigidbodies</h4>
+                <p>
+                    I am not going to talk about triangulation in detail, since I simply fed the coordinates I obtained from RDP
+                    into a triangulation algorithm from the <a href="https://github.com/ivanfratric/polypartition/tree/master">Polypartion Library</a>, 
+                    which I have found to be quite good. Moreover, the topics of triangulation and Box2D are quite intertwined, since I encountered a lot
+                    of issues during development that involved the relationship between these two processes. 
+                </p>
+                <p>
+                    So what is Box2D? In short, it is a 2D physics library that has been in development for well over two decades. 
+                    It is very versatile and can handle very complex physics simulations very efficiently, which is why I decided to 
+                    use it instead of going through the effort of developing my own systems. One of the quirks of Box2D is that it does 
+                    not actually measure size in pixels, it measures it in metres. As such, because it recommends to keep dynamic objects 
+                    at a maximum size of ten metres, it is often quite useful to have a pixels-to-metres conversion rate and vice versa.
+                </p>
+                <p>
+                    The principal Box2D feature that I was interested in was (rigid)bodies, which you can read about in detail <a href ="https://box2d.org/documentation/index.html#autotoc_md5">here</a>
+                    Bodies are made up of one or more <a href="https://box2d.org/documentation/md_collision.html#autotoc_md32"><i>shapes</i></a>, which have regular and irregular forms. 
+                    This means I could simply pass all the triangles generated for me by Polypartion to Box2D, have it generate the relevant shapes and attach them
+                    to the body. So essentially I ended up with a basic pipeline that took the coordinates generated from RDP, converted them from pixels to 
+                    metres, passed them into Polyparition for triangulation, and then created each triangle in Box2D and attached it to some parent body which 
+                    was related to the texture in question.
+                </p>
+                <p>And now, my program had physics!. But there was quite an obvious problem.</p>
+                <h4>What about rotation?</h4>
+                <p>
+                    When things fall, or bounce, or collide, or move on inclines, they can rotate. Now this is not a large problem for Box2D, which handles these 
+                    sorts of things automatically, but it is a problem for the rest of my program. Luckily, SDL has features to support rendering textures at an 
+                    angle, such as <strong>SDL_RenderCopyEx</strong>, which rotates a texture around a given point. But what about erasure? Now
+                    that textures are offset, erasing pixels is no longer as simple as just getting the position of the eraser relative to the 
+                    texture origin, because the relative positions of the pixels had changed. Instead, I came up with a much simpler solution. 
+                    If the texture had been rotated by a certain angle θ, the position of the eraser could be rotated by -θ, and then we could continue
+                    with the erasing process as before. However, I had to take into consideration that the point the eraser was being rotated around
+                    was not the origin of the world, but rather the center of the texture. This meant that I had to modify the <a href="https://en.wikipedia.org/wiki/Rotation_matrix"> rotation matrix</a>
+                    to account for this.
+                </p>
+                <p>
+                    But this caused a strange issue. Once textures were rotated beyond a specific angle, they would start jittering uncontrollably,
+                    and after that, they would disappear completely, sent off to ludicrous coordinates such as -19573748. At first, I thought this was
+                    simply a casting error, since all rotation calculations use floats, but the actual coordinates are ints. When this did not solve the issue,
+                    I setup a simple wireframe visualiser for the collider and some rotational controls, and played around with this system for a bit, which quickly
+                    pinpointed the issue. In Box2D, a shape is added to a body with coordinates relative to the body origin. This means that when a collider is created
+                    from texture outline data, it sits wholly in the positive quadrant, resulting in it rotating around the top left corner rather than the center of
+                    the collider. The solution to this is to just find the centre (width/2, height/2) of the collider, and shift all the shapes so that the origin 
+                    sits in this place, meaning that the shape does actually rotate about its center.
+                </p>
+                <p>
+                    Here's a video of the final program in action:
+                </p>
+                <div style="display: flex; justify-content: center;">
+                    <video autoplay loop muted playsinline>
+                        <source src="/static/images/Screen Recording 2025-04-30 172136.mp4" type="video/mp4">
+                        Your browser does not support the video tag
+                    </video>
+                </div>
+                <p>
+                    And with that, I had completed my objective of making my own version of Purho's system that could easily be built upon. The full code can be found 
+                    on <a href="https://github.com/smavanat/SDL-Pixel-Based-Destruction">my github</a>.
+                </p>
             </div>
-        </div><br><br>
-        <div class="maintext">
-            <h1>Designing a 2D destruction system using SDL</h1>
-            <p>I was inspired by <a href="https://www.youtube.com/watch?v=prXuyMCgbTc&ab_channel=GameDevelopersConference">Petri Purho’s GDC talk</a> on the destruction systems used in Noita to try and 
-                recreate these technologies for future use in some of my own projects and as a way of learning the basics of SDL and C++. In his talk, he described 
-                four principal steps in this process:</p>
-            <ul>
-                <li>Tracing the outline of the image using Marching Squares.</li>
-                <li>Simplifying the outline using Ramer-Douglas-Peucker.</li>
-                <li>Triangulating the resulting shape.</li>
-                <li>Passing these triangles to Box2D so that it can create a physics rigidbody to go along 
-                    with the texture.</li>
-            </ul>
-            <h3>Part 1: The Foundations of My Program</h3>
-            <p>Before I could start implementing the steps described by Purho, I had to first create a basic texture class within SDL
-                that I could then iterate upon to create the rest of my project. Luckily I managed to find <a href="https://lazyfoo.net/tutorials/SDL/index.php">Lazy Foo' Productions' SDL tutorials</a>,
-                which are a great resource for learning SDL at any level of familiarity with the library, and I followed
-                their tutorial on basic texture modification, which introduces the idea of a Pixel Buffer. A Pixel Buffer in 
-                SDL is an array that stores the RGB(A) values of all the pixels in a certain texture. Modifying the values
-                in the Pixel Buffer allows you to change the colour of pixels in the texture, which is useful because it is
-                impossible to get rid of pixels in a texture. But if I set a pixel be white and transparent, it could be said
-                to have been "erased" because it is practically invisible to the human eye. This is incredibly useful in SDL, since
-                all textures have to be squares or rectangles, so if you want to represent other shapes like circles or triangles
-                as a texture, you need to fill in the empty space with transparent pixels. Moreover, you can erase or destroy bits of 
-                textures by just setting their pixels to be transparent.
-            </p>
-            <h4>Creating Erasing Functionality</h4>
-            <p>A basic prerequisite to creating a system for simulating destructible rigidbodies is to be able to well, destroy things.
-                Since I didn't want to create a full game (it would have taken far too long and it would have been beyond my capabilities
-                in SDL at that point), I instead decided to go down a much simpler route and make a simple eraser that when 
-                dragged over a texture, would get the eraser's coordinates relative to the textures origin, and "erase" pixels in a circle by turning them white and transparent (setting their RGBA values
-                in the pixel buffer to 0xff, 0xff, 0xff, 0x00). Once I had finished this implementation and fixed a few small bugs, I added
-                a variable to control the radius of the circle of erasure, I considered myself ready to move on. 
-            </p>
-            <h4>Getting Pixel Regions</h4>
-            <p>This was by far the part of this project that I wasted the most time on. My first, and worst, idea was to isolate
-                regions by tracing their outline and determining which pixels where in each region by comparing their array positions.
-                This idea, both idiotic and over-complicated, resulted in me wasting a lot of time trying to desperately patch it into 
-                something workable, refusing to admit that the whole idea was terrible. Eventually I simply gave up. The only useful
-                thing that I learnt from that experience was how to efficiently use C++ arrays to simulate 2D grids. C++ does not
-                support multi-dimensional arrays, which is slightly annoying when dealing with arrays of pixels in a texture
-                and it is useful to know the pixels (x,y) coordinate relative to the top left corner of the texture. Luckily 
-                determining these values is quite easy if you know the width of the texture in pixels, and the index of the pixel
-                in the Pixel Buffer. The x-position is simply index % width, and the y-position is floor(index/width).
-            </p>
-            <p>
-                I took a break from this problem for a little while, and after I came back with clearer vision and I did some research, 
-                I discovered the flood-fill algorithm. The flood-fill algorithm is essentially just breadth-first-search with some additions.
-                Used in things like the "fill" tool that can be found ubiquitously in programs such as Paint and Word, it traverses
-                a texture until it finds a colourless pixel, colours it, and uses breadth-first-search to find all the colourless pixels that
-                can be reach from this first pixel, colours them in, and repeats this process until no more colourless pixels remain.
-                I thought that I could use a modified version of flood-fill to find regions of coloured pixels so that I could then use them
-                to create new textures. My modified version of flood-fill works as follows:
-            </p>
-            <ol>
-                <li>Start with a Pixel Buffer from a texture, an empty vector and an int array representing which pixels we have already visited. Initially all pixels are set to unvisited.</li>
-                <li>Find a coloured pixel.</li>
-                <li>Add its index in the Pixel Buffer to the vector.</li>
-                <li>Set it to be visited in the array.</li>
-                <li>Perform breadth-first-search to find all the other coloured pixels that can be reached from this pixel and repeat.</li>
-                <li>Sort the vector of indexes and return it.</li>
-            </ol>
-            <p>
-                While most of the steps are intuitive, the reason for returning the indexes of the pixels is not immediately obvious.
-                Surely it would be better to return the colours instead? No. The reason that it is the indexes I am interested in rather
-                than colours is because as I have said before, the indexes are the closest thing there is to a pixel coordinate, and
-                coordinates are needed so that a new, smaller, texture can be created with the correct pixel positioning. Colours can be 
-                re-obtained at a later date by just indexing the Pixel Buffer. This then leads onto the next question; why is
-                it necessary to sort the vector? The vector must be sorted so that a correct ordering of pixels occurs so that new
-                textures created from this data can be arranged properly. I will go into more detail about this in the next section.
-            </p>
-            <h4>Creating New Textures</h4>
-            <p>
-                Now that I had the ability to get regions of pixels that were created by "destroying" the original
-                texture, I needed to figure out how to create a new texture from this data. More specifically, I needed
-                to figure out how to create a new Pixel Buffer from this data that was formatted correctly, because then
-                I could pass it to a built-in SDL function that would do all the hard work of creating a new Texture for me.
-                The first step would be to figure out the size of the buffer, and since all textures in SDL are rectangular, 
-                this would mean finding the width and the height of the new texture. Height is the easier of the two to find, 
-                simply being the "y coordinate" of the last element in the sorted vector minus the "y coordinate" of the first
-                element in the sorted vector. Width was slightly harder to find. I needed to find the minimal and maximal values
-                of index % originalTextureWidth, and then find the difference between them. Lastly, I had to add 1 to both the 
-                width and the height, as coordinates are zero-indexed.
-            </p>
-            <p>
-                The next step was to actually create the new Pixel Buffer, starting with an array of size width*height filled 
-                with transparent pixels. Now I had to figure out how to properly copy over the colours of pixels at the correct
-                positions so they kept the proper arrangement. The first important thing to note is just as there is a way to 
-                get x and y coordinates from array indexes in a 1D array, it is also possible to get the index from the x and y coordinates,
-                if you happen to know the width, using the formula (y*width) + x. Therefore, finding the x and y coordinates of 
-                the current pixel relative to the new texture makes it very easy to add it to the new texture in the correct position. 
-                This is also why I sorted the vector earlier, as it makes it much easier to detect when a change of y coordinate has occurred.
-            </p>
-            <p>
-                Lastly, I set all of the pixels in the current region to colourless and instead instantiate a new texture
-                where the pixels would be. This means I can run the flood-fill again to find the next region and repeat the 
-                texture-creation process on it, so that eventually I end up with the original texture being completely blank, 
-                which I can subsequently delete. This results in some useless processing when the texture has only been modified,
-                and not completely split into pieces, but this can be easily fixed by changing the order you do things in, if 
-                performance is a major issue.
-            </p>
-            <h3>Part 2: Adding Physics to the Textures</h3>
-            <h4>Marching Squares</h4>
-            <p>Now that I had the basics of this system working, it was time to actually implement the process that Purho had spoken about. 
-                I am not going to go into detail on the algorithm of Marching Squares itself since it is a well documented
-                topic on the internet, however you can find some of the sources that I used (that are quite good) <a href="https://barradeau.com/blog/?p=391">here</a>
-                and <a href="https://emanueleferonato.com/2013/03/01/using-marching-squares-algorithm-to-trace-the-contour-of-an-image/">here</a>.
-                A brief summary of Marching Squares is that it traces the outline of a texture using 2x2 squares of pixels to determine which direction 
-                you should move in. Since there are only 16 possible 2x2 squares of pixels that can be formed (if we only take a binary of coloured and colourless),
-                it is fairly easy to assign a direction to each of the possible squares, except square 0 (with no coloured pixels) and square 15 (with no colourless pixels),
-                since at these squares it is impossible to know which way to move, and if your Marching Squares encounters them, something has likely gone wrong.
-                However, I would like to speak specifically about an issue that I encountered while implementing the algorithm, and how I was able to solve it.
-            </p>
-            <p>
-                The issue in question is the fact that Marching Squares, even when properly implemented, would struggle to find the correct outline for
-                shapes, and would often get confused when dealing with straight lines that ran across the very edge of the texture. The reason
-                for this was because, as I described earlier, had in an effort to make my textures as compact as possible not allowed for borders
-                of colourless pixels to form around the main image. This meant that whenever the algorithm reached the edge in a texture that was 
-                almost or completely filled, it would encounter square 15, become confused as it did not know which way to go next, and then break.
-                In my attempts to fix this issue, I did experiment with having the algorithm check if it was at an edge based on the index of the pixel
-                it was currently at, however this made the algorithm quite bloated and introduced more errors than it solved. Rather I found it easier to
-                add 1-pixel thick colourless border when creating new textures, which would allow Marching Squares to work seamlessly without any
-                extra additions.
-            </p>
-            <h4>Ramer-Douglas-Peucker</h4>
-            <p>
-                I will go into slightly more detail about the Ramer-Douglas-Peucker algorithm than I did about Marching Squares since it is slightly less
-                well known, however <a href="https://www.youtube.com/watch?v=nSYw9GrakjY&ab_channel=TheCodingTrain">this</a> YouTube video provides a quite 
-                good explanation as well as the basis of the code that I used for my implementation. Essentially, RDP is a way of taking a line that is 
-                made up of many discrete points, and simplifying it to retain the key features of the line while losing some detail. It is a recursive algorithm, 
-                working along the following steps:
-            </p>
-            <ol>
-                <li>Start with a line made up of discrete points</li>
-                <li>Draw an imaginary line between the start and end points</li>
-                <li>Find the point, v, that is the furthest from this line</li>
-                <li>Compare if the distance of the point v from the imaginary line is longer than some arbitrary value ε. If it is, continue, otherwise the algorithm ends</li>
-                <li>Repeat steps 2 to 5 on the segment of the line enclosed in the regions [start, v] and [v, end]</li>
-            </ol>
-            <p>
-                A more detailed explanation of ε than "some arbitrary value" would be the <i>detail factor</i> of the line, i.e. how many
-                points from the original line do you want the algorithm to keep. For example, if ε was 0, all the points in the line would 
-                be kept by RDP, and as ε tends to infinity, the line produced by RDP tends to a straight line between the start and end points.
-                I recommend experimenting with different values of ε to use in RDP, and use what works best for you. 
-            </p>
-            <h4>Box2D Rigidbodies</h4>
-            <p>
-                I am not going to talk about triangulation in detail, since I simply fed the coordinates I obtained from RDP
-                into a triangulation algorithm from the <a href="https://github.com/ivanfratric/polypartition/tree/master">Polypartion Library</a>, 
-                which I have found to be quite good. Moreover, the topics of triangulation and Box2D are quite intertwined, since I encountered a lot
-                of issues during development that involved the relationship between these two processes. 
-            </p>
-            <p>
-                So what is Box2D? In short, it is a 2D physics library that has been in development for well over two decades. 
-                It is very versatile and can handle very complex physics simulations very efficiently, which is why I decided to 
-                use it instead of going through the effort of developing my own systems. One of the quirks of Box2D is that it does 
-                not actually measure size in pixels, it measures it in metres. As such, because it recommends to keep dynamic objects 
-                at a maximum size of ten metres, it is often quite useful to have a pixels-to-metres conversion rate and vice versa.
-            </p>
-            <p>
-                The principal Box2D feature that I was interested in was (rigid)bodies, which you can read about in detail <a href ="https://box2d.org/documentation/index.html#autotoc_md5">here</a>
-                Bodies are made up of one or more <a href="https://box2d.org/documentation/md_collision.html#autotoc_md32"><i>shapes</i></a>, which have regular and irregular forms. 
-                This means I could simply pass all the triangles generated for me by Polypartion to Box2D, have it generate the relevant shapes and attach them
-                to the body. So essentially I ended up with a basic pipeline that took the coordinates generated from RDP, converted them from pixels to 
-                metres, passed them into Polyparition for triangulation, and then created each triangle in Box2D and attached it to some parent body which 
-                was related to the texture in question.
-            </p>
-            <p>And now, my program had physics!. But there was quite an obvious problem.</p>
-            <h4>What about rotation?</h4>
-            <p>
-                When things fall, or bounce, or collide, or move on inclines, they can rotate. Now this is not a large problem for Box2D, which handles these 
-                sorts of things automatically, but it is a problem for the rest of my program. Luckily, SDL has features to support rendering textures at an 
-                angle, such as <strong>SDL_RenderCopyEx</strong>, which rotates a texture around a given point. But what about erasure? Now
-                that textures are offset, erasing pixels is no longer as simple as just getting the position of the eraser relative to the 
-                texture origin, because the relative positions of the pixels had changed. Instead, I came up with a much simpler solution. 
-                If the texture had been rotated by a certain angle θ, the position of the eraser could be rotated by -θ, and then we could continue
-                with the erasing process as before. However, I had to take into consideration that the point the eraser was being rotated around
-                was not the origin of the world, but rather the center of the texture. This meant that I had to modify the <a href="https://en.wikipedia.org/wiki/Rotation_matrix"> rotation matrix</a>
-                to account for this.
-            </p>
-            <p>
-                But this caused a strange issue. Once textures were rotated beyond a specific angle, they would start jittering uncontrollably,
-                and after that, they would disappear completely, sent off to ludicrous coordinates such as -19573748. At first, I thought this was
-                simply a casting error, since all rotation calculations use floats, but the actual coordinates are ints. When this did not solve the issue,
-                I setup a simple wireframe visualiser for the collider and some rotational controls, and played around with this system for a bit, which quickly
-                pinpointed the issue. In Box2D, a shape is added to a body with coordinates relative to the body origin. This means that when a collider is created
-                from texture outline data, it sits wholly in the positive quadrant, resulting in it rotating around the top left corner rather than the center of
-                the collider. The solution to this is to just find the centre (width/2, height/2) of the collider, and shift all the shapes so that the origin 
-                sits in this place, meaning that the shape does actually rotate about its center.
-            </p>
-            <p>
-                Here's a video of the final program in action:
-            </p>
-            <div style="display: flex; justify-content: center;">
-                <video autoplay loop muted playsinline>
-                    <source src="/static/images/Screen Recording 2025-04-30 172136.mp4" type="video/mp4">
-                    Your browser does not support the video tag
-                </video>
-            </div>
-            <p>
-                And with that, I had completed my objective of making my own version of Purho's system that could easily be built upon. The full code can be found 
-                on <a href="https://github.com/smavanat/SDL-Pixel-Based-Destruction">my github</a>.
-            </p>
+
+            <!-- Footer -->
+            <footer style="background-color: #384d3f; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1); padding: 10px 0; color: white; text-align: center;">
+              <div style="display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;">
+                <h4 style="color: #ccd9d4">Contact me at: 
+                  <a href="mailto:edwin.hadass@hotmail.com" style="color: white; text-decoration: underline;">
+                    edwin.hadass@hotmail.com
+                  </a>
+                </h4>
+              </div>
+            </footer>
         </div>
     </body>
 </html>
